@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 namespace com.zachary625.unity_utility
 {
+    /// <summary>
+    /// Profile for a piece of code.
+    /// </summary>
     public class CodeLog
     {
         private CodeLog() { }
@@ -20,6 +23,11 @@ namespace com.zachary625.unity_utility
             }
         }
 
+        /// <summary>
+        /// Delegate for the CodeLog to gain current DateTime.
+        /// The inbound/outbound timestamp and duration calculation is based on this delegate.
+        /// By default, the delegate uses System.DateTime.Now
+        /// </summary>
         public Time_Delegate TimeDelegate
         {
             get
@@ -33,6 +41,9 @@ namespace com.zachary625.unity_utility
             }
         }
 
+        /// <summary>
+        /// Delegate for the CodeLog to convert a log entry to a string
+        /// </summary>
         public Format_Delegate FormatDelegate
         {
             get
@@ -46,6 +57,10 @@ namespace com.zachary625.unity_utility
             }
         }
 
+        /// <summary>
+        /// Delegate for the CodeLog to output the formatted log string
+        /// By default, the delegate uses Debug.Log
+        /// </summary>
         public Log_Delegate LogDelegate
         {
             get
@@ -59,6 +74,10 @@ namespace com.zachary625.unity_utility
             }
         }
 
+        /// <summary>
+        /// Current options for current CodeLog instance.
+        /// Temporary overriding these options are done by passing a LogOptions instance during the Log() call.
+        /// </summary>
         public LogOptions Options
         {
             get
@@ -72,6 +91,9 @@ namespace com.zachary625.unity_utility
             }
         }
 
+        /// <summary>
+        /// Delegate for filtering logs
+        /// </summary>
         public Predicate_Delegate PredicateDelegate
         {
             get
