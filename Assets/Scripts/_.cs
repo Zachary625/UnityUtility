@@ -31,18 +31,22 @@ public class _ : MonoBehaviour {
     void TestPredicate()
     {
         int i = 0;
-        CodeLog.I.PredicateDelegate = () =>
+        CodeLogOptions options = new CodeLogOptions()
         {
-            return i % 2 == 0;
+            LogDuration = true,
+            PredicateDelegate = () =>
+            {
+                return i % 2 == 0;
+            },
+
         };
-        CodeLog.I.Options.LogDuration = true;
         for (i = 0; i < 10; i++)
         {
-            CodeLog.I.Options.Name = "TestPredicate(" + i + ")";
+            options.Identifier = "TestPredicate(" + i + ")";
             CodeLog.I.Log(() =>
             {
                 int shit = i * i;
-            });
+            }, options);
         }
     }
 
@@ -55,12 +59,11 @@ public class _ : MonoBehaviour {
             {
                 int shit = i * i;
             }
-        }, new CodeLog.LogOptions()
+        }, new CodeLogOptions()
         {
-            Name = "TestOverhead(without log)",
+            Identifier = "TestOverhead(without log)",
             LogDuration = true,
         });
-
 
         CodeLog.I.Log(() =>
         {
@@ -71,9 +74,9 @@ public class _ : MonoBehaviour {
                     int shit = i * i;
                 });
             }
-        }, new CodeLog.LogOptions()
+        }, new CodeLogOptions()
         {
-            Name = "TestOverhead(with log)",
+            Identifier = "TestOverhead(with log)",
             LogDuration = true,
         });
 

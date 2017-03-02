@@ -5,11 +5,15 @@ using System.Collections.Generic;
 
 namespace com.zachary625.unity_utility
 {
+
     /// <summary>
     /// Profile for a piece of code.
     /// </summary>
     public class CodeLog
     {
+        public delegate void Code_Void();
+        public delegate T Code_Return<T>();
+
         private CodeLog() { }
 
         private static CodeLog _I;
@@ -23,37 +27,59 @@ namespace com.zachary625.unity_utility
             }
         }
 
+        private Stack<Format_Delegate> _FormatDelegateStack = new Stack<Format_Delegate>();
+        public void PushFormatDelegate(Format_Delegate formatDelegate)
+        {
+            _FormatDelegateStack.Push(formatDelegate);
+        }
+
+        public Format_Delegate PopFormatDelegate()
+        {
+            if (_FormatDelegateStack.Count > 0)
+            {
+                return _FormatDelegateStack.Pop();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public Format_Delegate FormatDelegate {
+            get {
+                if (_FormatDelegateStack.Count > 0)
+                {
+                    return _FormatDelegateStack.Peek();
+                }
+                else {
+                    return _DefaultFormatDelegate;
+                }
+            }
+        }
+
         /// <summary>
         /// Delegate for the CodeLog to gain current DateTime.
         /// The inbound/outbound timestamp and duration calculation is based on this delegate.
         /// By default, the delegate uses System.DateTime.Now
         /// </summary>
-        public Time_Delegate TimeDelegate
-        {
-            get
-            {
-                return _TimeDelegate;
-            }
+        public Time_Delegate TimeDelegate = _TimeDelegate;
 
-            set
-            {
-                _TimeDelegate = value;
-            }
+
+        private Stack<Log_Delegate> _LogDelegateStack = new Stack<Log_Delegate>();
+        public void PushLogDelegate(Log_Delegate logDelegate)
+        {
+            _LogDelegateStack.Push(logDelegate);
         }
 
-        /// <summary>
-        /// Delegate for the CodeLog to convert a log entry to a string
-        /// </summary>
-        public Format_Delegate FormatDelegate
+        public Log_Delegate PopLogDelegate()
         {
-            get
+            if (_LogDelegateStack.Count > 0)
             {
-                return _FormatDelegate;
+                return _LogDelegateStack.Pop();
             }
-
-            set
+            else
             {
-                _FormatDelegate = value;
+                return null;
             }
         }
 
@@ -61,121 +87,48 @@ namespace com.zachary625.unity_utility
         /// Delegate for the CodeLog to output the formatted log string
         /// By default, the delegate uses Debug.Log
         /// </summary>
-        public Log_Delegate LogDelegate
-        {
+        public Log_Delegate LogDelegate {
             get
             {
-                return _LogDelegate;
-            }
-
-            set
-            {
-                _LogDelegate = value;
-            }
-        }
-
-        /// <summary>
-        /// Current options for current CodeLog instance.
-        /// Temporary overriding these options are done by passing a LogOptions instance during the Log() call.
-        /// </summary>
-        public LogOptions Options
-        {
-            get
-            {
-                return _Options;
-            }
-
-            set
-            {
-                _Options = value;
+                if (_LogDelegateStack.Count > 0)
+                {
+                    return _LogDelegateStack.Peek();
+                }
+                else
+                {
+                    return _DefaultLogDelegate;
+                }
             }
         }
 
-        /// <summary>
-        /// Delegate for filtering logs
-        /// </summary>
-        public Predicate_Delegate PredicateDelegate
-        {
-            get
-            {
-                return _PredicateDelegate;
-            }
+        public Predicate_Delegate PredicateDelegate;
 
-            set
-            {
-                _PredicateDelegate = value;
-            }
-        }
-
-        public delegate bool Predicate_Delegate();
-        public delegate DateTime Time_Delegate();
-        public delegate void Log_Delegate(string logContent);
-        public delegate string Format_Delegate(Entry entry);
-
-        public delegate void Code_Void();
-        public delegate T Code_Return<T>();
-
-        public class LogOptions
-        {
-            public string Name;
-            public bool LogBounds;
-            public bool LogTime;
-            public bool LogDuration;
-        }
-
-        public enum EntryType {
-            None,
-            Inbound,
-            Outbound,
-            Duration,
-        }
-
-        public class Entry {
-            public string Name;
-            public EntryType Type;
-            public DateTime? Time;
-            public TimeSpan? Duration;
-        }
-
-        private LogOptions _Options = new LogOptions();
-        private Stack<LogOptions> _OptionsStack = new Stack<LogOptions>();
-
-        private Predicate_Delegate _PredicateDelegate = () =>
-        {
-            return true;
-        };
-
-        private Time_Delegate _TimeDelegate = () =>
-        {
-            return DateTime.Now;
-        };
-
-        private Format_Delegate _FormatDelegate = (entry) =>
+        private static Format_Delegate _DefaultFormatDelegate = (CodeLogEntry entry) =>
         {
             string result = "";
             switch (entry.Type)
             {
-                case EntryType.Inbound:
+                case CodeLogEntryType.Inbound:
                     {
-                        result = "+ " + entry.Name;
+                        result = "+ " + entry.Identifier;
                         if (entry.Time.HasValue)
                         {
                             result += " @ " + entry.Time.ToString() + "." + entry.Time.Value.Millisecond;
                         }
                         break;
                     }
-                case EntryType.Outbound:
+                case CodeLogEntryType.Outbound:
                     {
-                        result = "- " + entry.Name;
+                        result = "- " + entry.Identifier;
                         if (entry.Time.HasValue)
                         {
-                            result += " @ " + entry.Time.ToString()+"."+entry.Time.Value.Millisecond;
+                            result += " @ " + entry.Time.ToString() + "." + entry.Time.Value.Millisecond;
                         }
                         break;
                     }
-                case EntryType.Duration:
+                case CodeLogEntryType.Duration:
                     {
-                        result = "@ " + entry.Name;
+                        result = "@ " + entry.Identifier;
                         if (entry.Duration.HasValue)
                         {
                             result += " : " + entry.Duration.Value.TotalMilliseconds + " ms";
@@ -186,114 +139,44 @@ namespace com.zachary625.unity_utility
             return result;
         };
 
-        private Log_Delegate _LogDelegate = (text) =>
+        private static Time_Delegate _TimeDelegate = () =>
+        {
+            return DateTime.Now;
+        };
+
+        private static Log_Delegate _DefaultLogDelegate = (text) =>
         {
             Debug.Log(text);
         };
 
-        public void Log(Code_Void code, LogOptions options = null)
+        public void Log(Code_Void code, CodeLogOptions options = null)
         {
-            if (code == null)
-            {
-                return;
-            }
-            if (options == null)
-            {
-                options = this.Options;
-                if (options == null)
-                {
-                    code();
-                    return;
-                }
-            }
-            if (FormatDelegate == null || LogDelegate == null)
-            {
+            Log<object>(() => {
                 code();
-                return;
-            }
-            if (PredicateDelegate != null)
-            {
-                if (!PredicateDelegate())
-                {
-                    code();
-                    return;
-                }
-            }
-
-            DateTime? tick = null, tock = null;
-            if (options.LogTime || options.LogDuration)
-            {
-                if (TimeDelegate != null)
-                {
-                    tick = TimeDelegate();
-                }
-            }
-
-            if (options.LogBounds)
-            {
-                LogDelegate(FormatDelegate(new Entry()
-                {
-                    Type = EntryType.Inbound,
-                    Name = options.Name,
-                    Time = tick,
-                }));
-            }
-
-            code();
-
-            if (options.LogTime || options.LogDuration)
-            {
-                if (TimeDelegate != null)
-                {
-                    tock = TimeDelegate();
-                }
-            }
-            if (options.LogBounds)
-            {
-                LogDelegate(FormatDelegate(new Entry()
-                {
-                    Type = EntryType.Outbound,
-                    Name = options.Name,
-                    Time = tock,
-                }));
-            }
-
-
-            if (options.LogDuration)
-            {
-                if (tick.HasValue && tock.HasValue)
-                {
-                    LogDelegate(FormatDelegate(new Entry()
-                    {
-                        Type = EntryType.Duration,
-                        Name = options.Name,
-                        Duration = tock.Value - tick.Value,
-                    }));
-                }
-            }
-
-            return;
+                return null;
+            }, options);
         }
 
-        public T Log<T>(Code_Return<T> code, LogOptions options = null)
+        public T Log<T>(Code_Return<T> code, CodeLogOptions options = null)
         {
             if (code == null)
             {
                 return default(T);
             }
-            if(options == null)
+
+            if (options == null)
             {
-                options = this.Options;
-                if (options == null)
+                return code();
+            }
+
+            if (options.PredicateDelegate != null)
+            {
+                if (!options.PredicateDelegate())
                 {
                     return code();
                 }
             }
-            if (FormatDelegate == null || LogDelegate == null)
-            {
-                return code();
-            }
-            if (PredicateDelegate != null)
+            else if (PredicateDelegate != null)
             {
                 if (!PredicateDelegate())
                 {
@@ -301,7 +184,18 @@ namespace com.zachary625.unity_utility
                 }
             }
 
-            T result = default(T);
+            Format_Delegate formatDelegate = options.FormatDelegate;
+            if (formatDelegate == null)
+            {
+                formatDelegate = FormatDelegate;
+            }
+
+            Log_Delegate logDelegate = options.LogDelegate;
+            if (logDelegate == null)
+            {
+                logDelegate = LogDelegate;
+            }
+
             DateTime? tick = null, tock = null;
             if (options.LogTime || options.LogDuration)
             {
@@ -313,15 +207,15 @@ namespace com.zachary625.unity_utility
 
             if (options.LogBounds)
             {
-                LogDelegate(FormatDelegate(new Entry()
+                logDelegate(formatDelegate(new CodeLogEntry()
                 {
-                    Type = EntryType.Inbound,
-                    Name = options.Name,
+                    Type = CodeLogEntryType.Inbound,
+                    Identifier = options.Identifier,
                     Time = tick,
                 }));
             }
 
-            result = code();
+            T t = code();
 
             if (options.LogTime || options.LogDuration)
             {
@@ -332,10 +226,10 @@ namespace com.zachary625.unity_utility
             }
             if (options.LogBounds)
             {
-                LogDelegate(FormatDelegate(new Entry()
+                logDelegate(formatDelegate(new CodeLogEntry()
                 {
-                    Type = EntryType.Outbound,
-                    Name = options.Name,
+                    Type = CodeLogEntryType.Outbound,
+                    Identifier = options.Identifier,
                     Time = tock,
                 }));
             }
@@ -345,18 +239,19 @@ namespace com.zachary625.unity_utility
             {
                 if (tick.HasValue && tock.HasValue)
                 {
-                    LogDelegate(FormatDelegate(new Entry()
+                    logDelegate(formatDelegate(new CodeLogEntry()
                     {
-                        Type = EntryType.Duration,
-                        Name = options.Name,
+                        Type = CodeLogEntryType.Duration,
+                        Identifier = options.Identifier,
                         Duration = tock.Value - tick.Value,
                     }));
                 }
             }
 
-            return result;
+            return t;
         }
 
     }
+
 }
 
