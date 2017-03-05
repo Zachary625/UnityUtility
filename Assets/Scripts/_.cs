@@ -22,9 +22,13 @@ public class _ : MonoBehaviour {
         {
             TestPredicate();
         }
-        if (GUI.Button(new Rect(0, 100, 200, 50), "Test Overhead"))
+        if (GUI.Button(new Rect(0, 50, 200, 50), "Test Overhead"))
         {
             TestOverhead();
+        }
+        if (GUI.Button(new Rect(0, 100, 200, 50), "Test StackTrace"))
+        {
+            TestStackTrace();
         }
     }
 
@@ -40,12 +44,12 @@ public class _ : MonoBehaviour {
             },
 
         };
-        for (i = 0; i < 10; i++)
+        for (i = 0; i < 1000; i++)
         {
             options.Identifier = "TestPredicate(" + i + ")";
             CodeLog.I.Log(() =>
             {
-                int shit = i * i;
+                i+=2;
             }, options);
         }
     }
@@ -80,5 +84,16 @@ public class _ : MonoBehaviour {
             LogDuration = true,
         });
 
+    }
+
+    void TestStackTrace()
+    {
+        CodeLog.I.Log(()=> {
+            int shit = 0;
+        }, new CodeLogOptions()
+        {
+            Identifier = "TestStackTrance",
+            LogStack = true,
+        });
     }
 }

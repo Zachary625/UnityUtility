@@ -2,6 +2,7 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace com.zachary625.unity_utility
 {
@@ -38,6 +39,7 @@ namespace com.zachary625.unity_utility
         Inbound,
         Outbound,
         Duration,
+        StackTrace,
     }
 
     public class CodeLogEntry
@@ -46,5 +48,6 @@ namespace com.zachary625.unity_utility
         public CodeLogEntryType Type;
         public DateTime? Time;
         public TimeSpan? Duration;
+        public StackTrace StackTrace;
     }
 }

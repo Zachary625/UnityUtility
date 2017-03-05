@@ -2,6 +2,7 @@
 using System.Collections;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace com.zachary625.unity_utility
 {
@@ -135,6 +136,23 @@ namespace com.zachary625.unity_utility
                         }
                         break;
                     }
+                case CodeLogEntryType.StackTrace:
+                    {
+                        result = ("# " + entry.Identifier);
+                        if (entry.StackTrace != null)
+                        {
+                            result += "\n******\n";
+                            StackFrame[] frames = entry.StackTrace.GetFrames();
+                            for (int i = 0; i < frames.Length; i++)
+                            {
+                                System.Reflection.MethodBase method = frames[i].GetMethod();
+                                result += "|--" + method.DeclaringType.FullName + "." + method.Name + "\n";
+                                result += "|  " + frames[i].GetFileName() + ": " + frames[i].GetFileLineNumber() + "\n";
+                            }
+                            result += "******";
+                        }
+                        break;
+                    }
             }
             return result;
         };
@@ -146,7 +164,7 @@ namespace com.zachary625.unity_utility
 
         private static Log_Delegate _DefaultLogDelegate = (text) =>
         {
-            Debug.Log(text);
+            UnityEngine.Debug.Log(text);
         };
 
         public void Log(Code_Void code, CodeLogOptions options = null)
@@ -194,6 +212,16 @@ namespace com.zachary625.unity_utility
             if (logDelegate == null)
             {
                 logDelegate = LogDelegate;
+            }
+
+            if (options.LogStack)
+            {
+                logDelegate(formatDelegate(new CodeLogEntry()
+                {
+                    Type = CodeLogEntryType.StackTrace,
+                    Identifier = options.Identifier,
+                    StackTrace = new StackTrace(),
+                }));
             }
 
             DateTime? tick = null, tock = null;
